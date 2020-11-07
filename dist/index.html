@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documentation Page FCC</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx"
+    crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <div class="navMain__flexWrapper">
+    <nav id="navbar" class="navbar">
+      <header class="py-3 py-md-5">Getting started REST API v3</header>
+      <ul class="list-unstyled w-100">
+        <li><a href="#Overview" class="nav-link list-group-item">Overview</a></li>
+        <li><a href="#Authentication" class="nav-link list-group-item">Authentication</a></li>
+        <li>
+          <a href="#Repositories" class="nav-link list-group-item">Repositories</a>
+        </li>
+        <li><a href="#Issues" class="nav-link list-group-item">Issues</a></li>
+        <li><a href="#Conditional_requests" class="nav-link list-group-item">Conditional requests</a></li>
+      </ul>
+    </nav>
+    <main data-spy="scroll" id="main-doc" class="main container pt-md-5">
+      <section id="Overview" class="main-section">
+        <header>Overview</header>
+        <p>
+          Most applications will use an existing
+          <a href="https://developer.github.com/libraries/">wrapper library</a>
+          in the language of your choice, but it's important to familiarize
+          yourself with the underlying API HTTP methods first.
+        </p>
+        <p>
+          There's no easier way to kick the tires than through
+          <a href="http://curl.haxx.se/">cURL</a>. If you are using an
+          alternative client, note that you are required to send a valid
+          <a href="https://developer.github.com/v3/#user-agent-required">User Agent header</a>
+          in your request.
+        </p>
+        <h2>Hello World</h2>
+        <p>
+          Let's start by testing our setup. Open up a command prompt and enter
+          the following command:
+        </p>
+        <pre class="command-line command-line--input">curl https://api.github.com/zen Keep it logically awesome.</pre>
+        <p>
+          The response will be a random selection from our design
+          philosophies.
+        </p>
+        <p>
+          Next, let's <code>GET</code>
+          <a href="https://github.com/defunkt">Chris Wanstrath's</a> [GitHub
+          profile][users api]:
+        </p>
+        <pre class="command-line command-line--output">
+<span class="command-line--comment"># GET /users/defunkt</span>
+<span class="command-line--input">curl https://api.github.com/users/defunkt</span>
+{
+  "login": "defunkt",
+  "id": 2,
+  "url": "https://api.github.com/users/defunkt",
+  "html_url": "https://github.com/defunkt",
+  ...
+}        </pre>
+        <p>
+          Mmmmm, tastes like JSON. Let's add the <code>-i</code> flag to include headers:
+        </p>
+        <pre class="command-line command-line--output">
+<span class="command-line--input">curl -i https://api.github.com/users/defunkt</span>
+HTTP/1.1 200 OK
+Server: GitHub.com
+Date: Sun, 11 Nov 2012 18:43:28 GMT
+Content-Type: application/json; charset=utf-8
+Connection: keep-alive
+Status: 200 OK
+ETag: "bfd85cbf23ac0b0c8a29bee02e7117c6"
+X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 57
+X-RateLimit-Reset: 1352660008
+X-GitHub-Media-Type: github.v3
+Vary: Accept
+Cache-Control: public, max-age=60, s-maxage=60
+X-Content-Type-Options: nosniff
+Content-Length: 692
+Last-Modified: Tue, 30 Oct 2012 18:58:42 GMT
+{
+  "login": "defunkt",
+  "id": 2,
+  "url": "https://api.github.com/users/defunkt",
+  "html_url": "https://github.com/defunkt",
+  ...
+}</pre>
+        <p>
+          There are a few interesting bits in the response headers. As
+          expected, the <code>Content-Type</code> is <code>application/json</code>.
+        </p>
+        <p>
+          Any headers beginning with <code>X-</code> are custom headers, and are not
+          included in the HTTP spec. For example:
+        </p>
+        <ul>
+          <li>
+            <code>X-GitHub-Media-Type</code> has a value of <code>github.v3</code>. This lets us know
+            the <a href="https://developer.github.com/v3/media/">media type</a> for the response. Media types have
+            helped us
+            version our output in API v3. We'll talk more about that later.
+          </li>
+          <li>
+            Take note of the <code>X-RateLimit-Limit</code> and <code>X-RateLimit-Remaining</code>
+            headers. This pair of headers indicate <a href="https://developer.github.com/v3/#rate-limiting">how many
+              requests a client
+              can make</a> in a rolling time period (typically an hour) and how many
+            of those requests the client has already spent.
+          </li>
+        </ul>
+      </section>
+      <section id="Authentication" class="main-section">
+        <header>Authentication</header>
+        <p>Unauthenticated clients can make 60 requests per hour. To get more requests per hour, we'll need to
+          authenticate. In fact, doing anything interesting with the GitHub API requires <a
+            href="https://developer.github.com/v3/#authentication">authentication</a>.</p>
+        <h2>Using personal access tokens</h2>
+        <p>The easiest and best way to authenticate with the GitHub API is by using Basic Authentication <a
+            href="https://developer.github.com/v3/auth/#via-oauth-and-personal-access-tokens">via OAuth tokens</a>.
+          OAuth tokens include <a
+            href="https://help.github.com/articles/creating-an-access-token-for-command-line-use">personal access
+            tokens</a>.
+        </p>
+        <p>Use a <code>-u</code> flag to set your username:</p>
+        <pre
+          class="command-line command-line--input">curl -i -u your_username https://api.github.com/users/octocat</pre>
+        <p>When prompted, you can enter your OAuth token, but we recommend you set up a variable for it:</p>
+        <p>You can use <code>-u "username:$token"</code> and set up a variable for <code>token</code> to avoid leaving
+          your token in
+          shell
+          history, which should be avoided.</p>
+        <pre
+          class="command-line command-line--input">curl -i -u username:$token https://api.github.com/users/octocat</pre>
+        <p>When authenticating, you should see your rate limit bumped to 5,000 requests an hour, as indicated in the
+          <code>X-RateLimit-Limit</code> header. In addition to providing more calls per hour, authentication enables
+          you to read and write private information using the API.</p>
+        <p>You can easily <a
+            href="https://help.github.com/articles/creating-an-access-token-for-command-line-use">create a personal
+            access token</a> using your <a href="https://github.com/settings/tokens">Personal access tokens settings
+            page</a>:</p>
+        <img class="img-fluid" src="./assets/images/personal_token.png" alt="">
+        <h2>Get your own user profile</h2>
+        <p>When properly authenticated, you can take advantage of the permissions associated with your GitHub account.
+          For example, try getting [your own user profile][auth user api]:</p>
+        <pre class="command-line command-line--output">
+<span class="command-line--input">curl -i -u your_username:your_token https://api.github.com/user</span>
+{
+  ...
+  "plan": {
+    "space": 2516582,
+   "collaborators": 10,
+   "private_repos": 20,
+   "name": "medium"
+ }
+  ...
+}        </pre>
+        <p>This time, in addition to the same set of public information we retrieved for <a
+            href="https://github.com/defunkt">@defunkt</a> earlier, you should also see the non-public information for
+          your user profile. For example, you'll see a <code>plan</code> object in the response which gives details
+          about the GitHub plan for the account.</p>
+        <h2>
+          Using OAuth tokens for apps
+        </h2>
+        <p>Apps that need to read or write private information using the API on behalf of another user should use <a
+            href="https://developer.github.com/apps/building-integrations/setting-up-and-registering-oauth-apps/">OAuth</a>.
+        </p>
+        <p>OAuth uses tokens. Tokens provide two big features:</p>
+        <ul>
+          <li><b>Revokable access:</b> users can revoke authorization to third party apps at any time</li>
+          <li><b>Limited access:</b> users can review the specific access that a token will provide before authorizing a
+            third party app</li>
+        </ul>
+        <p>Tokens should be created via a <a
+            href="https://developer.github.com/apps/building-oauth-apps/authorizing-oauth-apps/">web flow</a>. An
+          application sends users to GitHub to log in. GitHub then presents
+          a dialog indicating the name of the app, as well as the level of access the app has once it's authorized by
+          the user. After a user authorizes access, GitHub redirects the user back to the application:</p>
+        <img class="img-fluid" src="./assets/images/oauth_prompt.png" alt="">
+        <p><b>Treat OAuth tokens like passwords!</b> Don't share them with other users or store them in insecure places.
+          The tokens in these examples are fake and the names have been changed to protect the innocent.</p>
+        <p>Now that we've got the hang of making authenticated calls, let's move along to the <a
+            href="https://developer.github.com/v3/repos/">Repositories API</a>.</p>
+      </section>
+      <section id="Repositories" class="main-section">
+        <header>Repositories</header>
+        <p>Almost any meaningful use of the GitHub API will involve some level of Repository information. We can
+          <code>GET</code> <a href="https://developer.github.com/v3/repos/#get-a-repository">repository details</a> in
+          the same way we fetched user details earlier:</p>
+        <pre class="command-line command-line--input">curl -i https://api.github.com/repos/twbs/bootstrap</pre>
+        <p>In the same way, we can <a
+            href="https://developer.github.com/v3/repos/#list-repositories-for-the-authenticated-user">view repositories
+            for the authenticated user</a>:</p>
+        <pre class="command-line command-line--input">curl -i -H "Authorization: token 5199831f4dd3b79e7c5b7e0ebe75d67aa66e79d4" \
+    https://api.github.com/user/repos</pre>
+        <p>Or, we can <a href="https://developer.github.com/v3/repos/#list-repositories-for-a-user">list repositories
+            for another user</a>:</p>
+        <pre class="command-line command-line--input">curl -i https://api.github.com/users/octocat/repos</pre>
+        <p>Or, we can list <a href="https://developer.github.com/v3/repos/#list-organization-repositories">repositories
+            for an organization</a>:</p>
+        <pre class="command-line command-line--input">curl -i https://api.github.com/orgs/octo-org/repos</pre>
+        <p>The information returned from these calls will depend on which scopes our token has when we authenticate:</p>
+        <ul>
+          <li>A token with <code>public_repo</code> <a
+              href="https://developer.github.com/apps/building-oauth-apps/understanding-scopes-for-oauth-apps/">scope</a>
+            returns a response that includes all public repositories we have access to see on github.com.</li>
+          <li>A token with <code>repo</code> <a
+              href="https://developer.github.com/apps/building-oauth-apps/understanding-scopes-for-oauth-apps/">scope</a>
+            returns a response that includes all public and private repositories we have access to see on github.com.
+          </li>
+        </ul>
+        <p>As the <a href="https://developer.github.com/v3/repos/">docs</a> indicate, these methods take a
+          <code>type</code> parameter that can filter the repositories returned based on
+          what type of access the user has for the repository. In this way, we can fetch only directly-owned
+          repositories, organization repositories, or repositories the user collaborates on via a team.</p>
+        <pre
+          class="command-line command-line--input">curl -i "https://api.github.com/users/octocat/repos?type=owner"</pre>
+        <p>In this example, we grab only those repositories that octocat owns, not the ones on which she collaborates.
+          Note the quoted URL above. Depending on your shell setup, cURL sometimes requires a quoted URL or else it
+          ignores the query string.</p>
+        <h2>Create a repository</h2>
+        pFetching information for existing repositories is a common use case, but the GitHub API supports creating new
+        repositories as well. To <a
+          href="https://developer.github.com/v3/repos/#create-a-repository-for-the-authenticated-user">create a
+          repository</a>, we need to <code>POST</code> some JSON containing the details and configuration options.
+        <pre class="command-line command-line--input">
+curl -i -H "Authorization: token 5199831f4dd3b79e7c5b7e0ebe75d67aa66e79d4" \
+    -d '{ \
+        "name": "blog", \
+        "auto_init": true, \
+        "private": true, \
+        "gitignore_template": "nanoc" \
+      }' \
+    https://api.github.com/user/repos        </pre>
+        <p>In this minimal example, we create a new repository for our blog (to be served on <a
+            href="http://pages.github.com/">GitHub Pages</a>, perhaps).
+          Though the blog will be public, we've made the repository private. In this single step, we'll also initialize
+          it with a README and a nanoc-flavored <a href="https://github.com/github/gitignore">.gitignore template</a>.
+        </p>
+        <p>The resulting repository will be found at <code>https://github.com/<your_username>/blog</code>. To create a
+          repository
+          under an organization for which you're an owner, just change the API method from <code>/user/repos</code> to
+          <code>/orgs/
+            <org_name>/repos</code>.</p>
+        <p>Next, let's fetch our newly created repository:</p>
+        <pre class="command-line command-line--output">
+    <span class="command-line--input"> curl -i https://api.github.com/repos/pengwynn/blog</span>
+ HTTP/1.1 404 Not Found
+{
+   "message": "Not Found"
+}        </pre>
+        <p>Oh noes! Where did it go? Since we created the repository as private, we need to authenticate in order to see
+          it. If you're a grizzled HTTP user, you might expect a <code>403</code> instead. Since we don't want to leak
+          information about private repositories, the GitHub API returns a <code>404</code> in this case, as if to say
+          "we can neither confirm nor deny the existence of this repository."</p>
+      </section>
+      <section id="Issues" class="main-section">
+        <header>Issues</header>
+        <p>The UI for Issues on GitHub aims to provide 'just enough' workflow while staying out of your way. With the
+          GitHub <a href="https://developer.github.com/v3/issues/">Issues API</a>, you can pull data out or create
+          issues from other tools to create a workflow that works for your team.</p>
+        <p>Just like github.com, the API provides a few methods to view issues for the authenticated user. To <a
+            href="https://developer.github.com/v3/issues/#list-issues-assigned-to-the-authenticated-user">see all your
+            issues</a>, call <code>GET /issues</code>:</p>
+        <pre class="command-line command-line--input">curl -i -H "Authorization: token 5199831f4dd3b79e7c5b7e0ebe75d67aa66e79d4" \
+    https://api.github.com/issues</pre>
+        <p>To get only the <a
+            href="https://developer.github.com/v3/issues/#list-issues-assigned-to-the-authenticated-user">issues under
+            one of your GitHub organizations</a>, call <code>GET /orgs/<org>/issues</code>:</p>
+        <pre class="command-line command-line--input">curl -i -H "Authorization: token 5199831f4dd3b79e7c5b7e0ebe75d67aa66e79d4" \
+          https://api.github.com/orgs/rails/issues</pre>
+        <p>We can also get <a href="https://developer.github.com/v3/issues/#list-repository-issues">all the issues under
+            a single repository</a>:</p>
+        <pre class="command-line command-line--input">curl -i https://api.github.com/repos/rails/rails/issues</pre>
+        <h2>Pagination</h2>
+        <p>A project the size of Rails has thousands of issues. We'll need to <a
+            href="https://developer.github.com/v3/#pagination">paginate</a>, making multiple API calls to get the data.
+          Let's repeat that last call, this time taking note of the response headers:</p>
+        <pre class="command-line command-line--output"><span class="command-line--input">curl -i https://api.github.com/repos/rails/rails/issues</span>
+HTTP/1.1 200 OK
+...
+Link: <https://api.github.com/repositories/8514/issues?page=2>; rel="next", <https://api.github.com/repositories/8514/issues?page=30>; rel="last"
+...          </pre>
+        <p>The <code>Link</code> <a href="http://www.w3.org/wiki/LinkHeader/">header</a> provides a way for a response
+          to link to external resources, in this case additional pages of data. Since our call found more than thirty
+          issues (the default page size), the API tells us where we can find the next page and the last page of results.
+        </p>
+        <h2>Creating an issue</h2>
+        <p>Now that we've seen how to paginate lists of issues, let's <a
+            href="https://developer.github.com/v3/issues/#create-an-issue">create an issue</a> from the API.
+        </p>
+        <p>To create an issue, we need to be authenticated, so we'll pass an OAuth token in the header. Also, we'll pass
+          the title, body, and labels in the JSON body to the <code>/issues</code> path underneath the repository in
+          which we want to create the issue:</p>
+        <pre class="command-line command-line--output">
+<span class="command-line--input">curl -i -H 'Authorization: token 5199831f4dd3b79e7c5b7e0ebe75d67aa66e79d4' \</span>
+<span class="command-line--input">   -d '{ \</span>
+<span class="command-line--input">        "title": "New logo", \</span>
+<span class="command-line--input">        "body": "We should have one", \</span>
+<span class="command-line--input">        "labels": ["design"] \</span>
+<span class="command-line--input">      }' \</span>
+<span class="command-line--input">   https://api.github.com/repos/pengwynn/api-sandbox/issues</span>
+HTTP/1.1 201 Created
+Location: https://api.github.com/repos/pengwynn/api-sandbox/issues/17
+X-RateLimit-Limit: 5000
+{
+  "pull_request": {
+    "patch_url": null,
+    "html_url": null,
+    "diff_url": null
+  },
+  "created_at": "2012-11-14T15:25:33Z",
+  "comments": 0,
+  "milestone": null,
+  "title": "New logo",
+  "body": "We should have one",
+  "user": {
+    "login": "pengwynn",
+    "gravatar_id": "7e19cd5486b5d6dc1ef90e671ba52ae0",
+    "avatar_url": "https://secure.gravatar.com/avatar/7e19cd5486b5d6dc1ef90e671ba52ae0?d=https://a248.e.akamai.net/assets.github.com%2Fimages%2Fgravatars%2Fgravatar-user-420.png",
+    "id": 865,
+    "url": "https://api.github.com/users/pengwynn"
+  },
+  "closed_at": null,
+  "updated_at": "2012-11-14T15:25:33Z",
+  "number": 17,
+  "closed_by": null,
+  "html_url": "https://github.com/pengwynn/api-sandbox/issues/17",
+  "labels": [
+    {
+      "color": "ededed",
+      "name": "design",
+      "url": "https://api.github.com/repos/pengwynn/api-sandbox/labels/design"
+    }
+  ],
+  "id": 8356941,
+  "assignee": null,
+  "state": "open",
+  "url": "https://api.github.com/repos/pengwynn/api-sandbox/issues/17"
+}        </pre>
+
+        <p>The response gives us a couple of pointers to the newly created issue, both in the <code>Location</code>
+          response header and the <code>url</code> field of the JSON response.</p>
+      </section>
+      <section id="Conditional_requests" class="main-section">
+        <header>Conditional requests</header>
+        <p>A big part of being a good API citizen is respecting rate limits by caching information that hasn't changed.
+          The API supports <a href="https://developer.github.com/v3/#conditional-requests">conditional requests</a> and
+          helps you do the right thing. Consider the first call we made to get defunkt's profile:</p>
+        <pre class="command-line command-line--output">
+<span class="command-line--input">curl -i https://api.github.com/users/defunkt</span>
+HTTP/1.1 200 OK
+ETag: "bfd85cbf23ac0b0c8a29bee02e7117c6"        </pre>
+        <p>In addition to the JSON body, take note of the HTTP status code of <code>200</code> and the <code>ETag</code>
+          header. The <a href="http://en.wikipedia.org/wiki/HTTP_ETag">ETag</a> is a fingerprint of the response. If we
+          pass that on subsequent calls, we can tell the API to give us the resource again, only if it has changed:</p>
+        <pre class="command-line command-line--input">
+curl -i -H 'If-None-Match: "bfd85cbf23ac0b0c8a29bee02e7117c6"' \
+   https://api.github.com/users/defunkt
+<span class="command-line--output">HTTP/1.1 304 Not Modified</span>        </pre>
+        <p>The <code>304</code> status indicates that the resource hasn't changed since the last time we asked for it
+          and the response will contain no body. As a bonus, <code>304</code> responses don't count against your <a
+            href="https://developer.github.com/v3/#rate-limiting">rate limit</a>.</p>
+        <p>Woot! Now you know the basics of the GitHub API!</p>
+        <ul>
+          <li>Basic & OAuth authentication</li>
+          <li>Fetching and creating repositories and issues
+          </li>
+          <li>Conditional requests</li>
+        </ul>
+        <p>Keep learning with the next API guide <a
+            href="https://developer.github.com/guides/basics-of-authentication">Basics of Authentication</a>! </p>
+        <p>[users api]: /v3/users/#get-a-user[auth user api]: /v3/users/#get-the-authenticated-user </p>
+      </section>
+      <div class="back-to-top badge badge-primary back-to-top--hidden"><svg width="1em" height="1em" viewBox="0 0 16 16"
+          class="bi bi-arrow-up-circle" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
+          <path fill-rule="evenodd"
+            d="M8 12a.5.5 0 0 0 .5-.5V5.707l2.146 2.147a.5.5 0 0 0 .708-.708l-3-3a.5.5 0 0 0-.708 0l-3 3a.5.5 0 1 0 .708.708L7.5 5.707V11.5a.5.5 0 0 0 .5.5z" />
+        </svg></div>
+    </main>
+  </div>
+  <script src="./assets/bundle.js"></script>
+</body>
+
+</html>
